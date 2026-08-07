@@ -85,20 +85,24 @@ export function CartModal() {
                   if (isVariant) {
                     price = variant?.priceInUSD
 
-                    const imageVariant = product.gallery?.find((item) => {
-                      if (!item.variantOption) return false
-                      const variantOptionID =
-                        typeof item.variantOption === 'object'
-                          ? item.variantOption.id
-                          : item.variantOption
+                    const imageVariant = product.gallery?.find(
+                      (item: { variantOption?: (number | { id: number }) | null }) => {
+                        if (!item.variantOption) return false
+                        const variantOptionID =
+                          typeof item.variantOption === 'object'
+                            ? item.variantOption.id
+                            : item.variantOption
 
-                      const hasMatch = variant?.options?.some((option) => {
-                        if (typeof option === 'object') return option.id === variantOptionID
-                        else return option === variantOptionID
-                      })
+                        const hasMatch = variant?.options?.some(
+                          (option: number | { id: number }) => {
+                            if (typeof option === 'object') return option.id === variantOptionID
+                            else return option === variantOptionID
+                          },
+                        )
 
-                      return hasMatch
-                    })
+                        return hasMatch
+                      },
+                    )
 
                     if (imageVariant && typeof imageVariant.image === 'object') {
                       image = imageVariant.image
@@ -132,7 +136,7 @@ export function CartModal() {
                             {isVariant && variant ? (
                               <p className="text-sm text-neutral-500 dark:text-neutral-400 capitalize">
                                 {variant.options
-                                  ?.map((option) => {
+                                  ?.map((option: number | { label: string }) => {
                                     if (typeof option === 'object') return option.label
                                     return null
                                   })

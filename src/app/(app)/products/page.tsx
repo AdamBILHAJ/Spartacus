@@ -1,13 +1,14 @@
-import { Grid } from '@/components/Grid'
-import { ProductGridItem } from '@/components/ProductGridItem'
+import type { Metadata } from 'next'
+
+import { ProductCard } from '@/components/storefront/ProductCard'
 import configPromise from '@payload-config'
 import { getPayload } from 'payload'
 import { Where } from 'payload'
 import React from 'react'
 
-export const metadata = {
-  description: 'Search for products in the store.',
+export const metadata: Metadata = {
   title: 'Shop',
+  description: 'Browse the full Spartacus activewear collection.',
 }
 
 type SearchParams = { [key: string]: string | string[] | undefined }
@@ -16,7 +17,7 @@ type Props = {
   searchParams: Promise<SearchParams>
 }
 
-export default async function ShopPage({ searchParams }: Props) {
+export default async function ProductsPage({ searchParams }: Props) {
   const { q: searchValue, sort, category } = await searchParams
   const payload = await getPayload({ config: configPromise })
 
@@ -35,7 +36,6 @@ export default async function ShopPage({ searchParams }: Props) {
       },
     })
 
-    // Map out extracted doc IDs from search results
     searchProductIDs = searchResults.docs
       .map((doc) => {
         const value = typeof doc.doc === 'object' ? doc.doc?.value : doc.doc
@@ -44,7 +44,6 @@ export default async function ShopPage({ searchParams }: Props) {
       .filter((id): id is number => typeof id === 'number')
   }
 
-  // Build conditional filters dynamically
   const whereConditions: Where[] = [{ _status: { equals: 'published' } }]
 
   if (category) {
@@ -55,7 +54,6 @@ export default async function ShopPage({ searchParams }: Props) {
     if (searchProductIDs && searchProductIDs.length > 0) {
       whereConditions.push({ id: { in: searchProductIDs } })
     } else {
-      // Fallback: direct title search on products if search collection is empty or out of sync
       whereConditions.push({ title: { like: searchValue } })
     }
   }
@@ -69,7 +67,9 @@ export default async function ShopPage({ searchParams }: Props) {
       slug: true,
       gallery: true,
       categories: true,
+      meta: true,
       priceInUSD: true,
+      priceInUSDEnabled: true,
     },
     where: {
       and: whereConditions,
@@ -82,24 +82,26 @@ export default async function ShopPage({ searchParams }: Props) {
   return (
     <div>
       {searchValue ? (
-        <p className="mb-4">
+        <p className="mb-4 text-sm text-muted-foreground">
           {products.docs?.length === 0
             ? 'There are no products that match '
             : `Showing ${products.docs.length} ${resultsText} for `}
-          <span className="font-bold">&quot;{searchValue}&quot;</span>
+          <span className="font-bold text-foreground">&quot;{searchValue}&quot;</span>
         </p>
       ) : null}
 
       {!searchValue && products.docs?.length === 0 && (
-        <p className="mb-4">No products found. Please try different filters.</p>
+        <p className="mb-4 text-sm text-muted-foreground">
+          No products found. Please try different filters.
+        </p>
       )}
 
       {products?.docs.length > 0 ? (
-        <Grid className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-2 gap-x-6 gap-y-10 lg:grid-cols-3">
           {products.docs.map((product) => {
-            return <ProductGridItem key={product.id} product={product} />
+            return <ProductCard key={product.id} product={product} />
           })}
-        </Grid>
+        </div>
       ) : null}
     </div>
   )
