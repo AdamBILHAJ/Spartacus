@@ -119,7 +119,7 @@ export default async function ProductPage({ params }: Args) {
       />
       <div className="container pt-8 pb-8">
         <Button asChild variant="ghost" className="mb-4">
-          <Link href="/shop">
+          <Link href="/products">
             <ChevronLeftIcon />
             All products
           </Link>

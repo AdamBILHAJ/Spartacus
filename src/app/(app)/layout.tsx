@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import { Jost } from 'next/font/google'
 
 import { AdminBar } from '@/components/AdminBar'
 import { Footer } from '@/components/Footer'
@@ -11,6 +12,12 @@ import { GeistSans } from 'geist/font/sans'
 import { GeistMono } from 'geist/font/mono'
 import React from 'react'
 import './globals.css'
+
+const jost = Jost({
+  subsets: ['latin'],
+  weight: ['400', '700'],
+  variable: '--font-jost',
+})
 
 /* const { SITE_NAME, TWITTER_CREATOR, TWITTER_SITE } = process.env
 const baseUrl = process.env.NEXT_PUBLIC_VERCEL_URL
@@ -42,7 +49,7 @@ const twitterSite = TWITTER_SITE ? ensureStartsWith(TWITTER_SITE, 'https://') : 
 export default async function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html
-      className={[GeistSans.variable, GeistMono.variable].filter(Boolean).join(' ')}
+      className={[GeistSans.variable, GeistMono.variable, jost.variable].filter(Boolean).join(' ')}
       lang="en"
       suppressHydrationWarning
     >

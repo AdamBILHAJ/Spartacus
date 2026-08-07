@@ -1,11 +1,10 @@
 import type { Footer } from '@/payload-types'
 
 import { FooterMenu } from '@/components/Footer/menu'
-import { ThemeSelector } from '@/providers/Theme/ThemeSelector'
 import { getCachedGlobal } from '@/utilities/getGlobals'
+import { LogoWordmark } from '@/components/icons/logo'
 import Link from 'next/link'
 import React, { Suspense } from 'react'
-import { LogoIcon } from '@/components/icons/logo'
 
 const { COMPANY_NAME, SITE_NAME } = process.env
 
@@ -13,21 +12,22 @@ export async function Footer() {
   const footer: Footer = await getCachedGlobal('footer', 1)()
   const menu = footer.navItems || []
   const currentYear = new Date().getFullYear()
-  const copyrightDate = 2023 + (currentYear > 2023 ? `-${currentYear}` : '')
+  const copyrightName = COMPANY_NAME || SITE_NAME || 'Spartacus'
   const skeleton = 'w-full h-6 animate-pulse rounded bg-neutral-200 dark:bg-neutral-700'
 
-  const copyrightName = COMPANY_NAME || SITE_NAME || ''
-
   return (
-    <footer className="text-sm text-neutral-500 dark:text-neutral-400">
+    <footer className="bg-neutral-950 text-neutral-400">
       <div className="container">
-        <div className="flex w-full flex-col gap-6 border-t border-neutral-200 py-12 text-sm md:flex-row md:gap-12 dark:border-neutral-700">
-          <div>
-            <Link className="flex items-center gap-2 text-black md:pt-1 dark:text-white" href="/">
-              <LogoIcon className="w-6" />
-              <span className="sr-only">{SITE_NAME}</span>
+        <div className="flex flex-col gap-10 border-b border-neutral-800 py-14 md:flex-row md:justify-between">
+          <div className="max-w-sm">
+            <Link className="inline-flex items-center" href="/">
+              <LogoWordmark className="text-white" />
             </Link>
+            <p className="mt-4 text-sm leading-relaxed">
+              Premium activewear engineered for the modern athlete. Train hard, train different.
+            </p>
           </div>
+
           <Suspense
             fallback={
               <div className="flex h-[188px] w-[200px] flex-col gap-2">
@@ -42,24 +42,26 @@ export async function Footer() {
           >
             <FooterMenu menu={menu} />
           </Suspense>
-          <div className="md:ml-auto flex flex-col gap-4 items-end">
-            <ThemeSelector />
+
+          <div className="flex flex-col gap-3 text-sm">
+            <p className="text-xs font-semibold uppercase tracking-[0.25em] text-white">Support</p>
+            <Link className="transition-colors hover:text-white" href="/account">
+              My account
+            </Link>
+            <Link className="transition-colors hover:text-white" href="/cart">
+              Cart
+            </Link>
+            <Link className="transition-colors hover:text-white" href="/products">
+              Shop
+            </Link>
           </div>
         </div>
-      </div>
-      <div className="border-t border-neutral-200 py-6 text-sm dark:border-neutral-700">
-        <div className="container mx-auto flex w-full flex-col items-center gap-1 md:flex-row md:gap-0">
+
+        <div className="flex flex-col items-center justify-between gap-3 py-6 text-xs md:flex-row">
           <p>
-            &copy; {copyrightDate} {copyrightName}
-            {copyrightName.length && !copyrightName.endsWith('.') ? '.' : ''} All rights reserved.
+            &copy; {currentYear} {copyrightName}. All rights reserved.
           </p>
-          <hr className="mx-4 hidden h-4 w-px border-l border-neutral-400 md:inline-block" />
-          <p>Designed in Michigan</p>
-          <p className="md:ml-auto">
-            <a className="text-black dark:text-white" href="https://payloadcms.com">
-              Crafted by Payload
-            </a>
-          </p>
+          <p className="uppercase tracking-[0.2em] text-neutral-600">Forge your body. Spartacus.</p>
         </div>
       </div>
     </footer>

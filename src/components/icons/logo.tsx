@@ -1,23 +1,38 @@
 import clsx from 'clsx'
 import React from 'react'
 
+// Spartacus brand mark — a stylised gladiator "S".
 export function LogoIcon(props: React.ComponentProps<'svg'>) {
   return (
     <svg
-      aria-label={`Payload logo`}
-      viewBox="0 0 25 28"
+      aria-label={`Spartacus logo`}
+      viewBox="0 0 32 32"
       xmlns="http://www.w3.org/2000/svg"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2.4"
+      strokeLinecap="round"
+      strokeLinejoin="round"
       {...props}
-      className={clsx('h-4 w-4 fill-black dark:fill-white', props.className)}
+      className={clsx('h-6 w-6 text-foreground', props.className)}
     >
-      <path
-        d="M12.067 23.7826L3.78561 19.023C3.68511 18.963 3.61811 18.8561 3.61811 18.736V11.3797C3.61811 11.2529 3.75881 11.1728 3.86601 11.2328L13.4808 16.7601C13.6148 16.8402 13.7823 16.74 13.7823 16.5865V13.0018C13.7823 12.8616 13.7086 12.7281 13.5813 12.6547L2.01676 6.006C1.91626 5.94592 1.78225 5.94592 1.68175 6.006L0.167505 6.88047C0.0670019 6.94055 0 7.04736 0 7.16752V20.8321C0 20.9522 0.0670019 21.059 0.167505 21.1191L12.0469 27.9547C12.1475 28.0148 12.2815 28.0148 12.382 27.9547L22.3585 22.2139C22.4926 22.1338 22.4926 21.9469 22.3585 21.8668L19.2497 20.0777C19.1224 20.0043 18.975 20.0043 18.8476 20.0777L12.4088 23.7826C12.3083 23.8427 12.1743 23.8427 12.0738 23.7826H12.067Z"
-        fill="currentColor"
-      />
-      <path
-        d="M24.2617 6.874L12.3822 0.045059C12.2817 -0.0150197 12.1477 -0.0150197 12.0472 0.045059L5.76914 3.65645C5.63514 3.73656 5.63514 3.92347 5.76914 4.00357L8.85123 5.77923C8.97854 5.85266 9.12594 5.85266 9.25324 5.77923L12.0673 4.16378C12.1678 4.1037 12.3018 4.1037 12.4023 4.16378L20.6838 8.92335C20.7843 8.98342 20.8513 9.09023 20.8513 9.21039V16.6001C20.8513 16.7402 20.925 16.8737 21.0523 16.9472L24.1344 18.7162C24.2684 18.7963 24.4359 18.6961 24.4359 18.5426V7.16771C24.4359 7.04756 24.3689 6.94075 24.2684 6.88067L24.2617 6.874Z"
-        fill="currentColor"
-      />
+      <path d="M7 9c4-4.5 9-5.5 12-3s4 5.5 1 9-9 5-10.5 8.5S10.5 27 14 27c3 0 5.5-1.5 7-3.5" />
+      <circle cx="16" cy="16" r="14.2" />
     </svg>
+  )
+}
+
+// Spartacus wordmark used throughout the storefront (header + footer).
+export function LogoWordmark(props: React.ComponentProps<'span'>) {
+  return (
+    <span
+      className={clsx(
+        'font-sans text-xl font-bold uppercase tracking-[0.18em] text-foreground',
+        props.className,
+      )}
+      {...props}
+    >
+      Spartacus
+    </span>
   )
 }

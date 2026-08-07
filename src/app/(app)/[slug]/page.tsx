@@ -62,7 +62,10 @@ export default async function Page({ params }: Args) {
   const { hero, layout } = page
 
   return (
-    <article className="pt-16 pb-24">
+    <article
+      className="flex flex-col items-center w-full"
+      style={{ paddingTop: 'var(--block-padding)', paddingBottom: 'var(--block-padding)' }}
+    >
       <RenderHero {...hero} />
       <RenderBlocks blocks={layout} />
     </article>
