@@ -23,7 +23,7 @@ const nextConfig: NextConfig = {
     ],
     qualities: [90, 100],
     remotePatterns: [
-      ...[NEXT_PUBLIC_SERVER_URL /* 'https://example.com' */].map((item) => {
+      ...NEXT_PUBLIC_SERVER_URL.split(',').map((item) => {
         const url = new URL(item)
 
         return {
@@ -31,6 +31,18 @@ const nextConfig: NextConfig = {
           protocol: url.protocol.replace(':', '') as 'http' | 'https',
         }
       }),
+      {
+        protocol: 'http',
+        hostname: 'localhost',
+        port: '3000',
+        pathname: '/api/media/file/**',
+      },
+      {
+        protocol: 'http',
+        hostname: '127.0.0.1',
+        port: '3000',
+        pathname: '/api/media/file/**',
+      },
     ],
   },
   reactStrictMode: true,
