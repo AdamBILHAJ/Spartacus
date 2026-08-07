@@ -41,6 +41,7 @@ export const Users: CollectionConfig = {
       },
       defaultValue: ['customer'],
       hasMany: true,
+      saveToJWT: true,
       hooks: {
         beforeChange: [ensureFirstUserIsAdmin],
       },
