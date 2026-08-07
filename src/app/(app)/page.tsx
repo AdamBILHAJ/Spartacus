@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 
 import { getHomeData } from '@/lib/home'
+import spartacusLogo from 'public/media/spartacus.png'
 import { HeroBanner } from '@/components/storefront/HeroBanner'
 import { SectionHeading } from '@/components/storefront/SectionHeading'
 import { ProductCard } from '@/components/storefront/ProductCard'
@@ -21,12 +22,6 @@ export const metadata: Metadata = {
 export default async function HomePage() {
   const { products, categories } = await getHomeData()
 
-  const heroProducts = products.slice(0, 3)
-  const heroImage =
-    heroProducts[0]?.gallery?.[0]?.image && typeof heroProducts[0].gallery[0].image !== 'string'
-      ? heroProducts[0].gallery[0].image
-      : null
-
   const bestSellers = products.slice(0, 4)
 
   return (
@@ -35,7 +30,7 @@ export default async function HomePage() {
         eyebrow="New Drop"
         title="Forge your strongest self"
         subtitle="High-performance activewear engineered for training that demands more. Cut, fit and fabric built to move with you."
-        image={heroImage}
+        image={spartacusLogo}
         primaryLabel="Shop the collection"
         primaryHref="/products"
         secondaryLabel="Explore"

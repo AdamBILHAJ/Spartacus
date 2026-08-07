@@ -1,3 +1,4 @@
+import type { Metadata } from 'next'
 import type { ReactNode } from 'react'
 import { Jost } from 'next/font/google'
 
@@ -46,6 +47,13 @@ const twitterSite = TWITTER_SITE ? ensureStartsWith(TWITTER_SITE, 'https://') : 
     }),
 } */
 
+export const metadata: Metadata = {
+  icons: {
+    icon: { url: '/media/spartacus.png', type: 'image/png' },
+    shortcut: '/media/spartacus.png',
+  },
+}
+
 export default async function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html
@@ -55,8 +63,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
     >
       <head>
         <InitTheme />
-        <link href="/favicon.ico" rel="icon" sizes="32x32" />
-        <link href="/favicon.svg" rel="icon" type="image/svg+xml" />
+        <link href="/media/spartacus.png" rel="icon" type="image/png" />
       </head>
       <body>
         <Providers>
