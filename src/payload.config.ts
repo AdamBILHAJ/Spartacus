@@ -78,6 +78,13 @@ export default buildConfig({
       ]
     },
   }),
+  // NOTE: Payload's default forgot-password email links point to
+  // `${serverURL}/admin/reset-password?token=...`. The /admin surface is gated
+  // by src/proxy.ts and returns a 404 for unauthenticated requests, so once
+  // email is enabled these reset links will 404 on click-through. Revisit this
+  // before turning email on: either point `auth.forgotPassword.emailHTML` at a
+  // public reset page in the storefront (e.g. /reset-password) or whitelist the
+  // reset route in the proxy matcher.
   //email: nodemailerAdapter(),
   endpoints: [],
   globals: [Header, Footer],
