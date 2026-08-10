@@ -41,6 +41,14 @@ export const Users: CollectionConfig = {
       },
       defaultValue: ['customer'],
       hasMany: true,
+      // saveToJWT embeds `roles` in the `payload-token` cookie at login, which
+      // src/proxy.ts needs for its admin gate.
+      //
+      // NOTE (one-time re-login): tokens issued BEFORE this flag was added do
+      // NOT carry the `roles` claim. Until such a token expires, its holder —
+      // even a valid admin — will be rejected by the proxy gate for /admin.
+      // Admins created before this change must log in once more to receive a
+      // token with the roles claim.
       saveToJWT: true,
       hooks: {
         beforeChange: [ensureFirstUserIsAdmin],
