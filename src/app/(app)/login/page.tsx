@@ -26,9 +26,8 @@ export default async function Login() {
 
         <h1 className="mb-4 text-[1.8rem]">Log in</h1>
         <p className="mb-8">
-          {`This is where your customers will login to manage their account, review their order history, and more. Admins authenticate here too — log in below, then open `}
-          <Link href="/admin">the admin dashboard</Link>
-          {'.'}
+          {`This is where your customers will login to manage their account, review their order history, and more. To manage all users, `}
+          <Link href="/admin/collections/users">login to the admin dashboard</Link>.
         </p>
         <LoginForm />
       </div>

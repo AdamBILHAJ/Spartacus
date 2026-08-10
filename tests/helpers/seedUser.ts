@@ -4,9 +4,6 @@ import config from '../../src/payload.config.js'
 export const testUser = {
   email: 'dev@payloadcms.com',
   password: 'test',
-  // The proxy gate requires the `roles` claim to include `admin`, so the
-  // seeded test user must be an admin or every /admin request returns 404.
-  roles: ['admin'] as ('admin' | 'customer')[],
 }
 
 /**
@@ -25,15 +22,10 @@ export async function seedTestUser(): Promise<void> {
     },
   })
 
-  // Create fresh test user.
-  // overrideAccess bypasses the admin-only field access on `roles`, which is
-  // required because no admin exists yet at seed time (the payload.create with
-  // default access is public for create, but the roles field itself is locked
-  // down to admins only).
+  // Create fresh test user
   await payload.create({
     collection: 'users',
     data: testUser,
-    overrideAccess: true,
   })
 }
 
