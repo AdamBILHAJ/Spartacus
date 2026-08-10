@@ -11,21 +11,27 @@ export interface LoginOptions {
 }
 
 /**
- * Logs the user into the admin panel via the login page.
+ * Authenticates the user against the shared Payload auth endpoint and stores
+ * the resulting `payload-token` session cookie in the browser context.
+ *
+ * /admin/login (the Payload admin UI login) is intentionally gated behind the
+ * proxy and returns 404, so all authentication must happen through the unified
+ * storefront login API instead.
  */
 export async function login({
   page,
   serverURL = 'http://localhost:3000',
   user,
 }: LoginOptions): Promise<void> {
-  await page.goto(`${serverURL}/admin/login`)
+  const response = await page.request.post(`${serverURL}/api/users/login`, {
+    data: {
+      email: user.email,
+      password: user.password,
+    },
+  })
 
-  await page.fill('#field-email', user.email)
-  await page.fill('#field-password', user.password)
-  await page.click('button[type="submit"]')
+  expect(response.ok()).toBe(true)
 
-  await page.waitForURL(`${serverURL}/admin`)
-
-  const dashboardArtifact = page.locator('span[title="Dashboard"]')
-  await expect(dashboardArtifact).toBeVisible()
+  // Set-Cookie from the login response is applied to the shared browser context.
+  expect((await page.context().cookies()).some((c) => c.name === 'payload-token')).toBe(true)
 }

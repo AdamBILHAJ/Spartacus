@@ -1,6 +1,9 @@
 import type { CollectionAfterChangeHook, CollectionAfterDeleteHook } from 'payload'
 
-import { revalidatePath, revalidateTag } from 'next/cache'
+// Explicit `.js` extension (repo convention, see next/headers.js imports) so
+// the module also resolves under Node/tsx in the CLI e2e/seed tooling, not just
+// through Next's bundler.
+import { revalidatePath, revalidateTag } from 'next/cache.js'
 
 import type { Page } from '../../../payload-types'
 
