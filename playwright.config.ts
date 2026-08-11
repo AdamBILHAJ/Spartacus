@@ -19,6 +19,13 @@ export default defineConfig({
   workers: process.env.CI ? 1 : undefined,
   /* Reporter to use. See https://playwright.dev/docs/test-reporters */
   reporter: 'html',
+  /*
+   * Project-level test/hook timeout. beforeAll/afterAll hooks ignore
+   * test.setTimeout() and always respect this value — the frontend suite's
+   * beforeAll compiles the Payload admin panel on first navigation, which
+   * routinely exceeds the 30s default.
+   */
+  timeout: 180_000,
   /* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */
   use: {
     /* Base URL to use in actions like `await page.goto('/')`. */
@@ -37,5 +44,9 @@ export default defineConfig({
     command: 'pnpm dev',
     reuseExistingServer: true,
     url: 'http://localhost:3000',
+    // Cold Turbopack starts on this repo routinely exceed Playwright's 60s
+    // default; without a pre-warmed server a fresh CI run fails on webServer
+    // startup rather than on an actual test.
+    timeout: 120_000,
   },
 })
