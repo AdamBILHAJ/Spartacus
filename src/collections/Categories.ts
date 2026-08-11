@@ -21,6 +21,14 @@ export const Categories: CollectionConfig = {
       type: 'text',
       required: true,
     },
+    {
+      name: 'image',
+      type: 'upload',
+      relationTo: 'media',
+      admin: {
+        description: 'Image shown on the category tile on the homepage.',
+      },
+    },
     slugField({
       position: undefined,
     }),

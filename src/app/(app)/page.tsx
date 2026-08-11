@@ -78,9 +78,17 @@ export default async function HomePage() {
       <section id="collections" className="mx-auto w-full max-w-7xl px-6 pb-20 md:px-12">
         <SectionHeading eyebrow="Shop by category" title="Discover more" />
         <div className="grid grid-cols-2 gap-5 md:grid-cols-4">
-          {categories.map((category) => (
-            <CategoryCard key={category.id} category={category} />
-          ))}
+          {categories.map((category) => {
+            const media = typeof category.image === 'object' ? category.image : null
+            return (
+              <CategoryCard
+                key={category.id}
+                category={category}
+                image={media ? { url: media.url, alt: media.alt } : undefined}
+                priority={false}
+              />
+            )
+          })}
         </div>
       </section>
     </div>
