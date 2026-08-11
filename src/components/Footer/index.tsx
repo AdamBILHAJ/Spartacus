@@ -1,10 +1,8 @@
 import type { Footer } from '@/payload-types'
 
-import { FooterMenu } from '@/components/Footer/menu'
-import { getCachedGlobal } from '@/utilities/getGlobals'
 import { LogoWordmark } from '@/components/icons/logo'
+import { getCachedGlobal } from '@/utilities/getGlobals'
 import Link from 'next/link'
-import React, { Suspense } from 'react'
 
 const { COMPANY_NAME, SITE_NAME } = process.env
 
@@ -28,20 +26,7 @@ export async function Footer() {
             </p>
           </div>
 
-          <Suspense
-            fallback={
-              <div className="flex h-[188px] w-[200px] flex-col gap-2">
-                <div className={skeleton} />
-                <div className={skeleton} />
-                <div className={skeleton} />
-                <div className={skeleton} />
-                <div className={skeleton} />
-                <div className={skeleton} />
-              </div>
-            }
-          >
-            <FooterMenu menu={menu} />
-          </Suspense>
+          
 
           <div className="flex flex-col gap-3 text-sm">
             <p className="text-xs font-semibold uppercase tracking-[0.25em] text-white">Support</p>

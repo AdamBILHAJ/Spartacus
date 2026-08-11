@@ -1,11 +1,17 @@
 import path from 'path'
 import { test, expect, Page } from '@playwright/test'
 import { fileURLToPath } from 'url'
+import { seedTestUser } from '../helpers/seedUser'
 
 const filename = fileURLToPath(import.meta.url)
 const dirname = path.dirname(filename)
 
 test.describe('Frontend', () => {
+  // The Payload admin panel is compiled on-demand in dev; the first navigation
+  // (media upload happens in beforeAll) triggers a full Turbopack compile that
+  // can exceed Playwright's 30s default.
+  test.setTimeout(180_000)
+
   let page: Page
   const baseURL = 'http://localhost:3000'
   const mediaURL = `${baseURL}/admin/collections/media`
@@ -24,16 +30,16 @@ test.describe('Frontend', () => {
     page = await context.newPage()
     await createUserAndLogin(request, adminEmail, adminPassword)
     await createVariantsAndProducts(page, request)
-  })
+  }, 180_000)
 
   test('can go on homepage', async ({ page }) => {
     await page.goto(baseURL)
 
-    await expect(page).toHaveTitle(/Payload Ecommerce Template/)
+    await expect(page).toHaveTitle(/Spartacus/)
 
     const heading = page.locator('h1').first()
 
-    await expect(heading).toHaveText('Payload Ecommerce Template')
+    await expect(heading).toHaveText('Forge your strongest self')
   })
 
   test('can sign up and subsequently login', async ({ page }) => {
@@ -110,21 +116,26 @@ test.describe('Frontend', () => {
   })
 
   test('can view and sort via search page', async ({ page }) => {
-    await page.goto(`${baseURL}/search`)
+    await page.goto(`${baseURL}/products`)
 
     const productCard = page.locator(`a[href="/products/test-product"]`)
     await productCard.waitFor({ state: 'visible' })
     await expect(productCard).toBeVisible()
 
-    const firstCard = page.locator('div.grid > a').first()
-    const title = firstCard.locator('div.font-mono > div').first()
-    await expect(title).not.toHaveText('Hoodie')
+    await expect(page.locator('div.grid > a').first()).toBeVisible()
 
     const priceSort = page.getByText('Price: Low to high')
     await priceSort.click()
-    await expect(page).toHaveURL(/\/search\?sort=priceInUSD/)
+    await expect(page).toHaveURL(/\/products\?sort=priceInUSD/)
 
-    await expect(title).toHaveText('Hoodie')
+    // Price ascending should put the $10 test-product before the $90 sweat-pants.
+    const hrefs = await page
+      .locator('div.grid > a')
+      .evaluateAll((links) => links.map((link) => link.getAttribute('href')))
+    const testProductIndex = hrefs.indexOf('/products/test-product')
+    const sweatPantsIndex = hrefs.indexOf('/products/sweat-pants')
+    expect(testProductIndex).toBeGreaterThanOrEqual(0)
+    expect(sweatPantsIndex).toBeGreaterThan(testProductIndex)
   })
 
   test('authenticated users can view account', async ({ page }) => {
@@ -139,8 +150,10 @@ test.describe('Frontend', () => {
   test('authenticated users can update their name', async ({ page }) => {
     await loginFromUI(page, adminEmail, adminPassword)
 
-    await page.goto(`${baseURL}/account`)
-
+    // loginFromUI already lands on /account via client-side navigation, so the
+    // auth user is set synchronously. A second full page.goto would reload the
+    // page and reset the form from an async /api/users/me response AFTER the
+    // fill, wiping the typed name and disabling the submit button.
     const heading = page.locator('h1').first()
     await expect(heading).toHaveText('Account settings')
 
@@ -178,9 +191,10 @@ test.describe('Frontend', () => {
 
   test('authenticated customers cannot access /admin', async ({ page }) => {
     await createUserAndLogin(page.request, userEmail, userPassword, false)
-    await page.goto(`${baseURL}/admin`)
-    const heading = page.locator('h1').first()
-    await expect(heading).toContainText('Unauthorized')
+    // src/proxy.ts hides the CMS behind a bare 404 for non-admin sessions
+    // (never a redirect, so the /admin surface stays unguessable).
+    const response = await page.goto(`${baseURL}/admin`)
+    expect(response?.status()).toBe(404)
   })
 
   test('Guest can create and view order', async ({ page }) => {
@@ -255,11 +269,22 @@ test.describe('Frontend', () => {
   test('Admins can create new products with new variants', async ({ page }) => {
     await loginFromUI(page, adminEmail, adminPassword)
 
+    // The slug field is auto-generated from the title (payload's `slugField`),
+    // so the admin UI renders it disabled. Use a unique title so repeated runs
+    // don't collide on the slug's unique index.
+    const newTitle = `New Product with Variants ${Date.now()}`
+    const newSlug = newTitle
+      .trim()
+      .replace(/ /g, '-')
+      .replace(/[^\w-]+/g, '')
+      .toLowerCase()
+
     await page.goto(`${baseURL}/admin/collections/products/create`)
     const titleInput = page.locator('input#field-title')
-    await titleInput.fill('New Product with Variants')
-    const slugInput = page.locator('input#field-slug')
-    await slugInput.fill('new-product-with-variants')
+    await titleInput.fill(newTitle)
+    // The gallery array starts empty on the create form; add a row so the
+    // upload cell (with "Choose from existing") renders.
+    await page.getByRole('button', { name: 'Add Gallery' }).click()
     const chooseFromExistingButton = page.getByRole('button', { name: 'Choose from existing' })
     await chooseFromExistingButton.click()
     const firstFileButton = page.locator('button.default-cell__first-cell').first()
@@ -306,8 +331,8 @@ test.describe('Frontend', () => {
     const publishChangesButton = page.getByRole('button', { name: 'Publish changes' })
     await publishChangesButton.click()
 
-    await page.goto(`${baseURL}/shop`)
-    const newProductCard = page.locator(`a[href="/products/new-product-with-variants"]`).first()
+    await page.goto(`${baseURL}/products`)
+    const newProductCard = page.locator(`a[href="/products/${newSlug}"]`).first()
     await newProductCard.waitFor({ state: 'visible' })
     await expect(newProductCard).toBeVisible()
   })
@@ -385,21 +410,16 @@ test.describe('Frontend', () => {
     password: string,
     isAdmin: boolean = true,
   ) {
-    const data: any = {
-      email,
-      password,
-    }
+    // Seed the user through Payload's trusted local API with overrideAccess so
+    // the `roles` field (guarded by adminOnlyFieldAccess) is applied. A public
+    // /api/users create call would silently strip the admin role, leaving a
+    // non-admin user that every admin-only API call (e.g. /api/variantTypes)
+    // correctly rejects with 403.
+    const roles: ('admin' | 'customer')[] = isAdmin ? ['admin'] : ['customer']
+    await seedTestUser({ email, password, roles })
 
-    if (isAdmin) {
-      data.roles = ['admin']
-    }
-
-    const response = await request.post(`${baseURL}/api/users`, {
-      data,
-    })
-
-    console.log({ response })
-
+    // Log in via the shared auth endpoint so the next requests from this same
+    // `request` context carry the payload-token cookie.
     const login = await request.post(`${baseURL}/api/users/login`, {
       data: {
         email,
@@ -407,43 +427,172 @@ test.describe('Frontend', () => {
       },
     })
 
-    console.log({ login })
+    expect(login.ok()).toBe(true)
   }
 
-  async function createVariantsAndProducts(page: Page, request: any) {
-    const variantType = await request.post(`${baseURL}/api/variantTypes`, {
-      data: {
-        name: 'brand',
-        label: 'Brand',
+  async function getExistingVariantType(request: any, name: string) {
+    const res = await request.get(`${baseURL}/api/variantTypes`, {
+      params: {
+        where: JSON.stringify({ name: { equals: name } }),
+        limit: '1',
       },
     })
 
-    const variantTypeID = (await variantType.json()).doc.id
+    if (!res.ok()) {
+      return null
+    }
 
-    const brands = [
-      { label: 'Payload', value: 'payload' },
-      { label: 'Figma', value: 'figma' },
-    ]
+    const json = await res.json()
 
-    const [payload, figma] = await Promise.all(
-      brands.map((option) =>
-        request.post(`${baseURL}/api/variantOptions`, {
-          data: {
-            ...option,
-            variantType: variantTypeID,
-          },
-        }),
-      ),
-    )
+    return json?.docs?.[0] ?? null
+  }
 
-    const payloadVariantID = (await payload.json()).doc.id
-    const figmaVariantID = (await figma.json()).doc.id
+  async function getExistingMedia(request: any, alt: string) {
+    const res = await request.get(`${baseURL}/api/media`, {
+      params: {
+        where: JSON.stringify({ alt: { equals: alt } }),
+        limit: '1',
+        depth: '0',
+      },
+    })
 
+    if (!res.ok()) {
+      return null
+    }
+
+    const json = await res.json()
+
+    return json?.docs?.[0] ?? null
+  }
+
+  async function createOrGetProduct(
+    request: any,
+    {
+      title,
+      slug,
+      inventory,
+      imageID,
+      enableVariants,
+      variantTypes,
+    }: {
+      title: string
+      slug: string
+      inventory: number
+      imageID: number
+      enableVariants?: boolean
+      variantTypes?: number[]
+    },
+  ) {
+    const existing = await getExistingProduct(request, slug)
+
+    if (existing) {
+      return existing.id
+    }
+
+    const res = await request.post(`${baseURL}/api/products`, {
+      data: {
+        title,
+        slug,
+        enableVariants,
+        variantTypes,
+        inventory,
+        _status: 'published',
+        layout: [],
+        gallery: [{ image: imageID }],
+        priceInUSDEnabled: true,
+        priceInUSD: 1000,
+      },
+    })
+
+    expect(res.ok()).toBe(true)
+    return (await res.json()).doc.id
+  }
+
+  async function getExistingProduct(request: any, slug: string) {
+    const res = await request.get(`${baseURL}/api/products`, {
+      params: {
+        where: JSON.stringify({ slug: { equals: slug } }),
+        limit: '1',
+        depth: '0',
+      },
+    })
+
+    if (!res.ok()) {
+      return null
+    }
+
+    const json = await res.json()
+
+    return json?.docs?.[0] ?? null
+  }
+
+  async function createOrGetVariantType(request: any, name: string, label: string) {
+    const existing = await getExistingVariantType(request, name)
+
+    if (existing) {
+      return existing.id
+    }
+
+    const res = await request.post(`${baseURL}/api/variantTypes`, {
+      data: {
+        name,
+        label,
+      },
+    })
+
+    expect(res.ok()).toBe(true)
+    return (await res.json()).doc.id
+  }
+
+  async function createOrGetVariantOption(
+    request: any,
+    label: string,
+    value: string,
+    variantTypeID: string,
+  ) {
+    const res = await request.get(`${baseURL}/api/variantOptions`, {
+      params: {
+        where: JSON.stringify({ value: { equals: value } }),
+        limit: '1',
+        depth: '0',
+      },
+    })
+
+    const docs = res.ok() ? (await res.json()).docs : []
+
+    const existing = docs.find((doc: any) => doc.variantType === variantTypeID)
+
+    if (existing) {
+      return existing.id
+    }
+
+    const create = await request.post(`${baseURL}/api/variantOptions`, {
+      data: {
+        label,
+        value,
+        variantType: variantTypeID,
+      },
+    })
+
+    expect(create.ok()).toBe(true)
+    return (await create.json()).doc.id
+  }
+
+  async function createOrGetMedia(page: Page, request: any) {
+    const existing = await getExistingMedia(request, 'Test Image')
+
+    if (existing) {
+      return existing.id
+    }
+
+    // No media uploaded yet: upload once via the admin UI. Subsequent runs
+    // reuse the existing doc above so the on-demand Turbopack compile of the
+    // admin panel does not run on every test session.
     await loginFromUI(page, adminEmail, adminPassword)
     await page.goto(`${mediaURL}/create`)
     const fileInput = page.locator('input[type="file"]')
     const altInput = page.locator('input[name="alt"]')
-    const filePath = path.resolve(dirname, '../../public/media/image-post1.webp')
+    const filePath = path.resolve(dirname, '../../public/media/image-hero1.webp')
     await fileInput.setInputFiles(filePath)
     await altInput.fill('Test Image')
     const uploadButton = page.locator('#action-save')
@@ -451,73 +600,85 @@ test.describe('Frontend', () => {
     const successMessage = page.locator('text=Media successfully created')
     await expect(successMessage).toBeVisible()
     await expect(page).toHaveURL(/\/admin\/collections\/media\/\d+/)
-    const imageID = page.url().split('/').pop()
+    return Number(page.url().split('/').pop())
+  }
 
-    const productWithVariants = await request.post(`${baseURL}/api/products`, {
-      data: {
-        title: 'Test Product With Variants',
-        slug: 'test-product-variants',
-        enableVariants: true,
-        variantTypes: [variantTypeID],
-        inventory: 100,
-        _status: 'published',
-        layout: [],
-        gallery: [imageID],
-        priceInUSDEnabled: true,
-        priceInUSD: 1000,
+  async function createVariantsAndProducts(page: Page, request: any) {
+    const variantTypeID = await createOrGetVariantType(request, 'brand', 'Brand')
+
+    const payloadVariantID = await createOrGetVariantOption(
+      request,
+      'Payload',
+      'payload',
+      variantTypeID,
+    )
+    const figmaVariantID = await createOrGetVariantOption(
+      request,
+      'Figma',
+      'figma',
+      variantTypeID,
+    )
+
+    const imageID = await createOrGetMedia(page, request)
+
+    const productID = await createOrGetProduct(request, {
+      title: 'Test Product With Variants',
+      slug: 'test-product-variants',
+      enableVariants: true,
+      variantTypes: [variantTypeID],
+      inventory: 100,
+      imageID,
+    })
+
+    const existingVariants = await request.get(`${baseURL}/api/variants`, {
+      params: {
+        where: JSON.stringify({ product: { equals: productID } }),
+        limit: '10',
+        depth: '0',
       },
     })
 
-    const productID = (await productWithVariants.json()).doc.id
+    const existingVariantDocs = existingVariants.ok()
+      ? (await existingVariants.json()).docs
+      : []
 
-    const variantPayload = await request.post(`${baseURL}/api/variants`, {
-      data: {
-        product: productID,
-        variantType: variantTypeID,
-        options: [payloadVariantID],
-        priceInUSDEnabled: true,
-        priceInUSD: 1000,
-        inventory: 50,
-        _status: 'published',
-      },
+    const createVariant = async (options: string[]) => {
+      const alreadyExists = existingVariantDocs.some(
+        (doc: any) => doc.options?.length === options.length && doc.options.every((o: any) => options.includes(o)),
+      )
+
+      if (alreadyExists) {
+        return
+      }
+
+      await request.post(`${baseURL}/api/variants`, {
+        data: {
+          product: productID,
+          variantType: variantTypeID,
+          options,
+          priceInUSDEnabled: true,
+          priceInUSD: 1000,
+          inventory: 50,
+          _status: 'published',
+        },
+      })
+    }
+
+    await createVariant([payloadVariantID])
+    await createVariant([figmaVariantID])
+
+    await createOrGetProduct(request, {
+      title: 'Test Product',
+      slug: 'test-product',
+      inventory: 100,
+      imageID,
     })
 
-    const variantFigma = await request.post(`${baseURL}/api/variants`, {
-      data: {
-        product: productID,
-        variantType: variantTypeID,
-        options: [figmaVariantID],
-        priceInUSDEnabled: true,
-        priceInUSD: 1000,
-        inventory: 50,
-        _status: 'published',
-      },
-    })
-
-    const product = await request.post(`${baseURL}/api/products`, {
-      data: {
-        title: 'Test Product',
-        slug: 'test-product',
-        inventory: 100,
-        _status: 'published',
-        layout: [],
-        gallery: [imageID],
-        priceInUSDEnabled: true,
-        priceInUSD: 1000,
-      },
-    })
-
-    const noInventoryProduct = await request.post(`${baseURL}/api/products`, {
-      data: {
-        title: 'No Inventory Product',
-        slug: 'no-inventory-product',
-        inventory: 0,
-        _status: 'published',
-        layout: [],
-        gallery: [imageID],
-        priceInUSDEnabled: true,
-        priceInUSD: 1000,
-      },
+    await createOrGetProduct(request, {
+      title: 'No Inventory Product',
+      slug: 'no-inventory-product',
+      inventory: 0,
+      imageID,
     })
   }
 
@@ -551,15 +712,20 @@ test.describe('Frontend', () => {
       variant?: string
     },
   ) {
-    await page.goto(`${baseURL}/shop`)
-    await expect(page).toHaveURL(/\/shop/)
+    await page.goto(`${baseURL}/products`)
+    await expect(page).toHaveURL(/\/products/)
 
     const productCard = page.locator(`a[href="/products/${productSlug}"]`).first()
     await productCard.waitFor({ state: 'visible' })
     await productCard.click()
 
+    // The first visit to a product page triggers an on-demand Turbopack compile
+    // in dev, so the click can resolve before the navigation finishes. Wait for
+    // the product URL instead of asserting the CTA immediately.
+    await page.waitForURL(`**/products/${productSlug}`)
+
     if (variant) {
-      const variantButton = page.getByRole('button', { name: variant })
+      const variantButton = page.getByRole('button', { name: variant }).first()
       await variantButton.waitFor({ state: 'visible' })
       await variantButton.click()
     }
