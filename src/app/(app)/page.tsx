@@ -1,7 +1,7 @@
 import type { Metadata } from 'next'
 
 import { getHomeData } from '@/lib/home'
-import spartacusLogo from 'public/media/spartacus.png'
+import spartacusLogo from '@/assets/images/spartacus.png'
 import { HeroBanner } from '@/components/storefront/HeroBanner'
 import { SectionHeading } from '@/components/storefront/SectionHeading'
 import { ProductCard } from '@/components/storefront/ProductCard'
