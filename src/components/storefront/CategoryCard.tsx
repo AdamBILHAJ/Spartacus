@@ -1,6 +1,5 @@
 import type { Category } from '@/payload-types'
 
-import { Media as MediaComponent } from '@/components/Media'
 import Link from 'next/link'
 import React from 'react'
 
