@@ -36,15 +36,23 @@ export const FormBlock: React.FC<
     id?: DefaultDocumentIDType
   }
 > = (props) => {
+  const { enableIntro, form: formFromProps, introContent } = props
+
+  const isFormObject = typeof formFromProps === 'object' && formFromProps !== null
+  const formID = isFormObject
+    ? formFromProps.id ?? (formFromProps as FormType & { _id?: string | number })._id
+    : formFromProps
+
   const {
-    enableIntro,
-    form: formFromProps,
-    form: { id: formID, confirmationMessage, confirmationType, redirect, submitButtonLabel } = {},
-    introContent,
-  } = props
+    confirmationMessage,
+    confirmationType,
+    redirect,
+    submitButtonLabel,
+    fields: formFields,
+  } = isFormObject ? formFromProps : {}
 
   const formMethods = useForm({
-    defaultValues: buildInitialFormState(formFromProps.fields),
+    defaultValues: buildInitialFormState((isFormObject ? formFields : []) ?? []),
   })
   const {
     control,
@@ -77,7 +85,7 @@ export const FormBlock: React.FC<
         try {
           const req = await fetch(`${getClientSideURL()}/api/form-submissions`, {
             body: JSON.stringify({
-              form: formID,
+              form: String(formID),
               submissionData: dataToSend,
             }),
             headers: {
@@ -125,6 +133,10 @@ export const FormBlock: React.FC<
     [router, formID, redirect, confirmationType],
   )
 
+  if (!formFromProps || !isFormObject || !formFields?.length) {
+    return null
+  }
+
   return (
     <div className="container lg:max-w-3xl">
       {enableIntro && introContent && !hasSubmitted && (
@@ -138,7 +150,7 @@ export const FormBlock: React.FC<
           {isLoading && !hasSubmitted && <p>Loading, please wait...</p>}
           {error && <div>{`${error.status || '500'}: ${error.message || ''}`}</div>}
           {!hasSubmitted && (
-            <form id={formID} onSubmit={handleSubmit(onSubmit)}>
+            <form id={String(formID)} onSubmit={handleSubmit(onSubmit)}>
               <div className="mb-4 last:mb-0">
                 {formFromProps &&
                   formFromProps.fields &&
@@ -164,7 +176,7 @@ export const FormBlock: React.FC<
                   })}
               </div>
 
-              <Button form={formID} type="submit" variant="default">
+              <Button form={String(formID)} type="submit" variant="default">
                 {submitButtonLabel}
               </Button>
             </form>
