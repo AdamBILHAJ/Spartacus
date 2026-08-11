@@ -1,3 +1,4 @@
+import { vercelBlobStorage } from '@payloadcms/storage-vercel-blob'
 import { formBuilderPlugin } from '@payloadcms/plugin-form-builder'
 import { searchPlugin } from '@payloadcms/plugin-search'
 import { seoPlugin } from '@payloadcms/plugin-seo'
@@ -44,6 +45,12 @@ const beforeSync: BeforeSync = ({ originalDoc, searchDoc }) => {
 }
 
 export const plugins: Plugin[] = [
+  vercelBlobStorage({
+    collections: {
+      media: true,
+    },
+    token: process.env.BLOB_READ_WRITE_TOKEN,
+  }),
   searchPlugin({
     collections: ['products'],
     beforeSync,
