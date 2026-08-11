@@ -52,7 +52,7 @@ export const FormBlock: React.FC<
   } = isFormObject ? formFromProps : {}
 
   const formMethods = useForm({
-    defaultValues: buildInitialFormState(isFormObject ? formFields : []),
+    defaultValues: buildInitialFormState((isFormObject ? formFields : []) ?? []),
   })
   const {
     control,
