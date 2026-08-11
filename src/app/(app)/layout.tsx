@@ -6,6 +6,7 @@ import { AdminBar } from '@/components/AdminBar'
 import { Footer } from '@/components/Footer'
 import { Header } from '@/components/Header'
 import { LivePreviewListener } from '@/components/LivePreviewListener'
+import spartacusLogo from '@/assets/images/spartacus.png'
 import { ensureStartsWith } from '@/utilities/ensureStartsWith'
 import { Providers } from '@/providers'
 import { InitTheme } from '@/providers/Theme/InitTheme'
@@ -49,8 +50,8 @@ const twitterSite = TWITTER_SITE ? ensureStartsWith(TWITTER_SITE, 'https://') : 
 
 export const metadata: Metadata = {
   icons: {
-    icon: { url: '/media/spartacus.png', type: 'image/png' },
-    shortcut: '/media/spartacus.png',
+    icon: { url: spartacusLogo.src, type: 'image/png' },
+    shortcut: spartacusLogo.src,
   },
 }
 
@@ -63,7 +64,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
     >
       <head>
         <InitTheme />
-        <link href="/media/spartacus.png" rel="icon" type="image/png" />
+        <link href={spartacusLogo.src} rel="icon" type="image/png" />
       </head>
       <body>
         <Providers>
