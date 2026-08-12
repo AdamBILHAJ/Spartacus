@@ -9,9 +9,12 @@ import path from 'path'
 import { fileURLToPath } from 'url'
 
 import { adminOnly } from '@/access/adminOnly'
+import { vercelBlobProxy } from '@/utilities/vercelBlobProxy'
 
 const filename = fileURLToPath(import.meta.url)
 const dirname = path.dirname(filename)
+
+const cloudStorageEnabled = Boolean(process.env.BLOB_READ_WRITE_TOKEN)
 
 export const Media: CollectionConfig = {
   admin: {
@@ -41,6 +44,7 @@ export const Media: CollectionConfig = {
     },
   ],
   upload: {
+    handlers: cloudStorageEnabled ? [vercelBlobProxy] : undefined,
     staticDir: path.resolve(dirname, '../../public/media'),
   },
 }

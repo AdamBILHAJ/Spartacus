@@ -44,8 +44,13 @@ const beforeSync: BeforeSync = ({ originalDoc, searchDoc }) => {
   }
 }
 
+// storage-vercel-blob 3.x typings predate private Blob stores, but the runtime forwards
+// `access` verbatim to `@vercel/blob`'s put(), which natively accepts 'private'.
+const VERCEL_BLOB_ACCESS = 'private' as unknown as 'public'
+
 export const plugins: Plugin[] = [
   vercelBlobStorage({
+    access: VERCEL_BLOB_ACCESS,
     collections: {
       media: true,
     },
